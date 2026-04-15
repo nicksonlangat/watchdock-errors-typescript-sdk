@@ -4,6 +4,14 @@
   "description": "Watchdock error tracking SDK for Node.js backends",
   "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nicksonlangat/watchdock-errors-typescript-sdk.git"
+  },
+  "homepage": "https://github.com/nicksonlangat/watchdock-errors-typescript-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/nicksonlangat/watchdock-errors-typescript-sdk/issues"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -22,10 +30,15 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build"
   },
   "engines": {
     "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
     "@types/node": "^24.9.1",
