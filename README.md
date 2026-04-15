@@ -9,7 +9,7 @@ It captures handled and unhandled server-side errors, formats them into the payl
 ## Install
 
 ```bash
-npm install watchdock-errors-typescript
+npm install watchdock-errors
 ```
 
 Node `18+` is required.
@@ -17,7 +17,7 @@ Node `18+` is required.
 ## Quick Start
 
 ```ts
-import { init, captureException, captureMessage } from "watchdock-errors-typescript";
+import { init, captureException, captureMessage } from "watchdock-errors";
 
 init({
   apiKey: "wdk_your_tracking_key",
@@ -43,8 +43,8 @@ import express from "express";
 import {
   watchdockErrorHandler,
   watchdockRequestHandler,
-} from "watchdock-errors-typescript/express";
-import { init } from "watchdock-errors-typescript";
+} from "watchdock-errors/express";
+import { init } from "watchdock-errors";
 
 init({
   apiKey: process.env.WATCHDOCK_API_KEY!,
