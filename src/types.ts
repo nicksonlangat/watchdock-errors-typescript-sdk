@@ -44,6 +44,7 @@ export interface WatchdockEventPayload {
   title?: string;
   timestamp: string;
   environment?: string;
+  level?: string;
   release?: string;
   exception: WatchdockExceptionPayload;
   request?: WatchdockRequestPayload;
@@ -55,6 +56,7 @@ export interface WatchdockEventPayload {
 export interface WatchdockCaptureContext {
   title?: string;
   environment?: string;
+  level?: string;
   release?: string;
   request?: WatchdockRequestPayload;
   user?: WatchdockUserPayload;
