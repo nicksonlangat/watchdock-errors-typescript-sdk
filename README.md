@@ -34,6 +34,9 @@ try {
 }
 
 captureMessage("Background job completed with partial failures");
+
+// Override the default level via context
+captureMessage("Queue depth high", { level: "warning" });
 ```
 
 ## Express Integration
@@ -98,11 +101,11 @@ init({
 
 ### `captureException(error, context?)`
 
-Captures an `Error` object or any thrown value.
+Captures an `Error` object or any thrown value. Defaults to `level: "error"` unless overridden via `context.level`.
 
 ### `captureMessage(message, context?)`
 
-Captures a non-exception event as a `"Message"` issue.
+Captures a non-exception event as a `"Message"` issue. Defaults to `level: "info"` unless overridden via `context.level`.
 
 ### `flush()`
 
@@ -114,3 +117,4 @@ Waits for any queued sends to finish. Useful before shutting down a process.
 - Request headers like `Authorization` and `Cookie` are always redacted.
 - When `sendPii` is `false`, request bodies are redacted and user email is omitted.
 - The SDK is intentionally lightweight and uses the global `fetch` available in Node 18+.
+- On `init()`, the SDK schedules a one-time, fire-and-forget ping to the platform (with the SDK version and environment) to register that it started up. This never blocks startup and any failure is silently ignored.
