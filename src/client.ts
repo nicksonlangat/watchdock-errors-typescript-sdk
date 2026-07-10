@@ -33,6 +33,8 @@ class WatchdockClient {
       onError: options.onError,
       fetchImpl,
     };
+
+    sendInitPing(this.state);
   }
 
   isInitialized(): boolean {
@@ -44,6 +46,7 @@ class WatchdockClient {
     this.enqueueEvent({
       title: context?.title,
       environment: context?.environment,
+      level: context?.level || "error",
       release: context?.release,
       exception: buildExceptionPayload(normalized),
       request: context?.request,
@@ -56,6 +59,7 @@ class WatchdockClient {
     this.enqueueEvent({
       title: context?.title || message,
       environment: context?.environment,
+      level: context?.level || "info",
       release: context?.release,
       exception: {
         type: "Message",
@@ -97,6 +101,7 @@ class WatchdockClient {
         server: partial.server,
         title: partial.title,
         environment: partial.environment,
+        level: partial.level,
         release: partial.release,
       });
 
@@ -106,6 +111,7 @@ class WatchdockClient {
           title: mergedContext.title || partial.title,
           timestamp: new Date().toISOString(),
           environment: mergedContext.environment || state.environment || "production",
+          level: mergedContext.level || partial.level,
           release: mergedContext.release || state.release || "",
           exception: partial.exception,
           request: mergedContext.request,
@@ -143,6 +149,34 @@ class WatchdockClient {
       state.onError?.(error);
     }
   }
+}
+
+function baseUrl(endpoint: string): string {
+  const trimmed = endpoint.replace(/\/$/, "");
+  const idx = trimmed.indexOf("/api/v1/");
+  return idx === -1 ? trimmed : trimmed.slice(0, idx);
+}
+
+/**
+ * Fire-and-forget POST to register SDK initialisation with the platform.
+ * Waits before pinging to allow the server to be ready at startup, and
+ * never blocks init or raises on failure.
+ */
+function sendInitPing(state: WatchdockClientState): void {
+  setTimeout(() => {
+    state
+      .fetchImpl(`${baseUrl(state.endpoint)}/api/v1/errors/sdk-init/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${state.apiKey}`,
+        },
+        body: JSON.stringify({ sdk_version: SDK_VERSION, environment: state.environment }),
+      })
+      .catch(() => {
+        // Never block or raise on init ping failure
+      });
+  }, 5000);
 }
 
 export const client = new WatchdockClient();
