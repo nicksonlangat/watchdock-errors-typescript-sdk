@@ -111,6 +111,17 @@ Captures a non-exception event as a `"Message"` issue. Defaults to `level: "info
 
 Waits for any queued sends to finish. Useful before shutting down a process.
 
+## Correlating with nginx requests
+
+If your app is behind nginx and you've added `$request_id` to your access log format (see the [nginx log collection docs](https://watchdock.cc/docs/nginx-log-collection)) and forwarded it to your app via `proxy_set_header X-Request-Id $request_id;`, this SDK automatically reads that header off the request and attaches it as `trace_id` — no code changes needed. This lets WatchDock link a failed request in your nginx access logs directly to the exception it produced.
+
+You can also pass `trace_id` explicitly via context, which takes priority over the auto-extracted value:
+
+```ts
+captureException(error, { trace_id: myTraceId });
+captureMessage("Queue depth high", { level: "warning", trace_id: myTraceId });
+```
+
 ## Notes
 
 - The SDK authenticates with `Authorization: Bearer wdk_...`.

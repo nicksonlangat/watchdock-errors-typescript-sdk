@@ -206,6 +206,39 @@ function truncateBody(body: unknown): unknown {
   }
 }
 
+/**
+ * Pulls a correlation ID off incoming request headers so this event can be
+ * linked back to the nginx access log line for the same request. Prefers
+ * `X-Request-Id` (nginx's built-in `$request_id`, zero extra modules
+ * required) and falls back to the trace-id segment of a W3C `traceparent`
+ * header if present.
+ */
+export function extractTraceId(headers?: Record<string, string>): string | undefined {
+  if (!headers) {
+    return undefined;
+  }
+
+  const normalized: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    normalized[key.toLowerCase()] = value;
+  }
+
+  const requestId = normalized["x-request-id"];
+  if (requestId) {
+    return requestId;
+  }
+
+  const traceparent = normalized["traceparent"];
+  if (traceparent) {
+    const parts = traceparent.split("-");
+    if (parts.length >= 2 && parts[1]) {
+      return parts[1];
+    }
+  }
+
+  return undefined;
+}
+
 export function normalizeUrl(input: string): string {
   if (!input) {
     return input;
