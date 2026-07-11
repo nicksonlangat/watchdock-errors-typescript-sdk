@@ -1,6 +1,6 @@
 import { getCurrentScope } from "./request-context.js";
 import type { WatchdockCaptureContext, WatchdockClientState, WatchdockEventPayload, WatchdockInitOptions } from "./types.js";
-import { buildExceptionPayload, buildServerPayload, mergeScope, normalizeUrl, sanitizeEvent, toError } from "./utils.js";
+import { buildExceptionPayload, buildServerPayload, extractTraceId, mergeScope, normalizeUrl, sanitizeEvent, toError } from "./utils.js";
 
 const SDK_NAME = "watchdock-errors-typescript";
 const SDK_VERSION = "0.1.4";
@@ -48,6 +48,7 @@ class WatchdockClient {
       environment: context?.environment,
       level: context?.level || "error",
       release: context?.release,
+      trace_id: context?.trace_id,
       exception: buildExceptionPayload(normalized),
       request: context?.request,
       user: context?.user,
@@ -61,6 +62,7 @@ class WatchdockClient {
       environment: context?.environment,
       level: context?.level || "info",
       release: context?.release,
+      trace_id: context?.trace_id,
       exception: {
         type: "Message",
         message,
@@ -103,6 +105,7 @@ class WatchdockClient {
         environment: partial.environment,
         level: partial.level,
         release: partial.release,
+        trace_id: partial.trace_id,
       });
 
       let event: WatchdockEventPayload = sanitizeEvent(
@@ -113,6 +116,7 @@ class WatchdockClient {
           environment: mergedContext.environment || state.environment || "production",
           level: mergedContext.level || partial.level,
           release: mergedContext.release || state.release || "",
+          trace_id: mergedContext.trace_id || extractTraceId(mergedContext.request?.headers),
           exception: partial.exception,
           request: mergedContext.request,
           user: mergedContext.user,

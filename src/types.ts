@@ -46,6 +46,7 @@ export interface WatchdockEventPayload {
   environment?: string;
   level?: string;
   release?: string;
+  trace_id?: string;
   exception: WatchdockExceptionPayload;
   request?: WatchdockRequestPayload;
   user?: WatchdockUserPayload;
@@ -58,6 +59,12 @@ export interface WatchdockCaptureContext {
   environment?: string;
   level?: string;
   release?: string;
+  /**
+   * Correlation ID linking this event to the originating nginx request
+   * (e.g. `X-Request-Id`). Takes priority over any value auto-extracted
+   * from `request.headers` if both are present.
+   */
+  trace_id?: string;
   request?: WatchdockRequestPayload;
   user?: WatchdockUserPayload;
   server?: WatchdockServerPayload;
