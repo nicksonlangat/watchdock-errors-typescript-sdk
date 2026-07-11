@@ -3,7 +3,7 @@ import type { WatchdockCaptureContext, WatchdockClientState, WatchdockEventPaylo
 import { buildExceptionPayload, buildServerPayload, extractTraceId, mergeScope, normalizeUrl, sanitizeEvent, toError } from "./utils.js";
 
 const SDK_NAME = "watchdock-errors-typescript";
-const SDK_VERSION = "0.1.4";
+const SDK_VERSION = "0.1.5";
 const DEFAULT_ENDPOINT = "https://api.watchdock.cc/api/v1/error-events/";
 
 class WatchdockClient {
