@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import os from "node:os";
 
 import type {
@@ -26,11 +27,76 @@ export function toError(value: unknown): Error {
 }
 
 export function buildExceptionPayload(error: Error): WatchdockExceptionPayload {
+  const stacktrace = parseStack(error.stack);
+  enrichFramesWithContext(stacktrace);
   return {
     type: error.name || "Error",
     message: error.message || "Unknown error",
-    stacktrace: parseStack(error.stack),
+    stacktrace,
   };
+}
+
+/** Source lines captured on each side of a frame's failing line. */
+const CONTEXT_LINES = 2;
+
+/**
+ * Fills context_line / pre_context / post_context on each frame by reading the
+ * source file around the failing line, on the machine where the code runs (the
+ * only place the source actually is). Frames whose file can't be read (native
+ * modules, bundled output, files not on disk) keep just their location.
+ *
+ * Line numbers point at the *running* JavaScript, so for TypeScript compiled
+ * without inline source maps the context is the compiled line; plain JS is
+ * exact. Reading is best-effort and never throws into the caller.
+ */
+export function enrichFramesWithContext(frames: WatchdockStackFrame[]): void {
+  const cache = new Map<string, string[] | null>();
+
+  for (const frame of frames) {
+    if (!frame.filename || !frame.lineno) {
+      continue;
+    }
+    const lines = readFileLines(frame.filename, cache);
+    if (!lines) {
+      continue;
+    }
+    const idx = frame.lineno - 1; // frame line numbers are 1-based
+    if (idx < 0 || idx >= lines.length) {
+      continue;
+    }
+
+    const at = (n: number): string => (n >= 1 && n - 1 < lines.length ? lines[n - 1] : "");
+
+    frame.context_line = at(frame.lineno).trim();
+    frame.pre_context = [];
+    for (let i = frame.lineno - CONTEXT_LINES; i < frame.lineno; i++) {
+      frame.pre_context.push(at(i));
+    }
+    frame.post_context = [];
+    for (let i = frame.lineno + 1; i <= frame.lineno + CONTEXT_LINES; i++) {
+      frame.post_context.push(at(i));
+    }
+  }
+}
+
+function readFileLines(filename: string, cache: Map<string, string[] | null>): string[] | null {
+  const cached = cache.get(filename);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  let lines: string[] | null = null;
+  try {
+    // Skip virtual paths (e.g. "node:internal/...") that aren't real files.
+    if (!filename.startsWith("node:")) {
+      lines = fs.readFileSync(filename, "utf8").split(/\r?\n/);
+    }
+  } catch {
+    lines = null;
+  }
+
+  cache.set(filename, lines);
+  return lines;
 }
 
 export function parseStack(stack?: string): WatchdockStackFrame[] {
