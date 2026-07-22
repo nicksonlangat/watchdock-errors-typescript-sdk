@@ -3,6 +3,8 @@ export interface WatchdockStackFrame {
   function?: string;
   lineno?: number;
   context_line?: string;
+  pre_context?: string[];
+  post_context?: string[];
 }
 
 export interface WatchdockExceptionPayload {

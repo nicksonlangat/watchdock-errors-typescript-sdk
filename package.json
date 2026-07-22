@@ -1,6 +1,6 @@
 {
   "name": "watchdock-errors",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "description": "Watchdock error tracking SDK for Node.js backends",
   "license": "MIT",
   "type": "module",
