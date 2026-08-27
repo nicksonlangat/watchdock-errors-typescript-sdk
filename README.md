@@ -125,7 +125,7 @@ captureMessage("Queue depth high", { level: "warning", trace_id: myTraceId });
 ## Notes
 
 - The SDK authenticates with `Authorization: Bearer wdk_...`.
-- Request headers like `Authorization` and `Cookie` are always redacted.
-- When `sendPii` is `false`, request bodies are redacted and user email is omitted.
+- Request headers like `Authorization`, `Cookie`, and `Set-Cookie` are always redacted.
+- When `sendPii` is `false`, request bodies are redacted, user email is omitted, and sensitive-looking query-param values (names containing `token`, `secret`, `password`, `auth`, `key`, `session`, `credential`, `otp`, `pin`, `ssn`, etc.) are redacted in both `query_params` and the captured `url` itself.
 - The SDK is intentionally lightweight and uses the global `fetch` available in Node 18+.
 - On `init()`, the SDK schedules a one-time, fire-and-forget ping to the platform (with the SDK version and environment) to register that it started up. This never blocks startup and any failure is silently ignored.

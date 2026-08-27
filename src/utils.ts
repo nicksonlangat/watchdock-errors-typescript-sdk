@@ -183,6 +183,7 @@ export function mergeScope(
 export function sanitizeEvent(event: WatchdockEventPayload, sendPii: boolean): WatchdockEventPayload {
   const sanitizedHeaders = sanitizeHeaders(event.request?.headers ?? {}, sendPii);
   const sanitizedBody = sanitizeBody(event.request?.body, sendPii);
+  const sanitizedQuery = sanitizeQueryParams(event.request?.url, event.request?.query_params, sendPii);
 
   return {
     ...event,
@@ -191,10 +192,84 @@ export function sanitizeEvent(event: WatchdockEventPayload, sendPii: boolean): W
           ...event.request,
           headers: sanitizedHeaders,
           body: sanitizedBody,
+          url: sanitizedQuery.url,
+          query_params: sanitizedQuery.queryParams,
         }
       : undefined,
     user: sendPii ? event.user : redactUser(event.user),
   };
+}
+
+// Substring match (case-insensitive) against query-param names. Deliberately broad --
+// over-redacting an innocuous param (e.g. "sort_key") is a much smaller cost than leaking
+// a reset token, session id, or api key sitting in a URL.
+const SENSITIVE_QUERY_PARAM_SUBSTRINGS = [
+  "token",
+  "secret",
+  "password",
+  "passwd",
+  "pwd",
+  "auth",
+  "key",
+  "session",
+  "credential",
+  "otp",
+  "pin",
+  "ssn",
+];
+
+function isSensitiveQueryParam(name: string): boolean {
+  const lowered = name.toLowerCase();
+  return SENSITIVE_QUERY_PARAM_SUBSTRINGS.some((substring) => lowered.includes(substring));
+}
+
+/**
+ * Redacts sensitive query-param values from both `query_params` and the `url` string
+ * itself. Headers and the body get their own scrubbing above, but a URL is often the most
+ * PII-dense thing captured by default (reset tokens, magic links, `?api_key=...`) and
+ * previously passed through untouched even with PII collection off. Rebuilds the url's
+ * query string from the redacted params rather than deleting it, so the two never
+ * disagree and the path (still useful for grouping/debugging) is preserved.
+ */
+function sanitizeQueryParams(
+  url: string | undefined,
+  queryParams: Record<string, unknown> | undefined,
+  sendPii: boolean,
+): { url: string | undefined; queryParams: Record<string, unknown> | undefined } {
+  if (sendPii) {
+    return { url, queryParams };
+  }
+
+  let sanitizedParams = queryParams;
+  if (queryParams) {
+    sanitizedParams = {};
+    for (const [key, value] of Object.entries(queryParams)) {
+      sanitizedParams[key] = isSensitiveQueryParam(key)
+        ? Array.isArray(value)
+          ? value.map(() => "[REDACTED]")
+          : "[REDACTED]"
+        : value;
+    }
+  }
+
+  let sanitizedUrl = url;
+  if (url) {
+    try {
+      const parsed = new URL(url);
+      if (parsed.search) {
+        for (const key of Array.from(parsed.searchParams.keys())) {
+          if (isSensitiveQueryParam(key)) {
+            parsed.searchParams.set(key, "[REDACTED]");
+          }
+        }
+        sanitizedUrl = parsed.toString();
+      }
+    } catch {
+      // Not a fully-qualified URL (e.g. a bare path) -- leave as-is rather than throw.
+    }
+  }
+
+  return { url: sanitizedUrl, queryParams: sanitizedParams };
 }
 
 function sanitizeHeaders(headers: Record<string, string>, sendPii: boolean): Record<string, string> {
